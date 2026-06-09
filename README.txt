@@ -3,6 +3,7 @@
 ├── README     
 ├── environment.py      # 5×5 游戏环境
 ├── evals.py            # V0～V4 评估函数
+├── play.py            # 手动玩一局游戏（和咱们的项目没太大关系，是我刚开始测试游戏环境写的）
 ├── expectimax.py       # 搜索框架（修改为接受 eval_func）
 ├── test_v0.py          # 测试一局v0评估函数下的游戏结果
 ├── test_v1.py          # 测试一局v0评估函数下的游戏结果
