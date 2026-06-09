@@ -1,5 +1,7 @@
+#这个是测试V4的评估函数哦
 from environment import Game
 from expectimax import get_best_action
+from evals import evaluate_v4   
 import time
 
 def render(board, score, step):
@@ -15,9 +17,10 @@ def render(board, score, step):
 game = Game()
 state = game.reset()
 render(state, game.score, game.step_count)
+
 while True:
     start = time.time()
-    action = get_best_action(game, depth=3)
+    action = get_best_action(game, depth=3, eval_func=evaluate_v4)  
     if action is None:
         print("无合法动作，游戏结束")
         break
