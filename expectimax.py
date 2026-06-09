@@ -1,18 +1,11 @@
 import numpy as np
 import random
 
-# ==================== 评估函数权重（针对合成国家队调整） ====================
-WEIGHTS = {
-    'empty': 35.0,
-    'monotonicity': -1.2,
-    'smoothness': -1.5,
-    'corner_max': 12.0,
-}
-
+# ==================== 游戏参数 ====================
 TILE_PROBS = [(2, 0.9), (4, 0.1)]
 COACH_TILE_PROBS = [(16, 0.9), (32, 0.1)]
 
-# 采样设置（兼顾速度与精度）
+# 采样设置
 SAMPLE_THRESHOLD = 6
 SAMPLE_SIZE = 8
 ACCIDENT_SAMPLE_MAX = 5
@@ -74,68 +67,15 @@ def simulate_move(board, action):
 
     return temp_board, moved, score
 
-def _monotonicity_score(arr):
-    score = 0
-    for i in range(len(arr)-1):
-        if arr[i] >= arr[i+1]:
-            score += 1
-        else:
-            score -= 1
-    return score
-
-def evaluate(board):
-    size = board.shape[0]
-    log_board = np.zeros_like(board, dtype=np.float32)
-    mask = board > 0
-    log_board[mask] = np.log2(board[mask])
-    score = 0.0
-
-    # 空格数
-    empty_count = np.sum(board == 0)
-    score += WEIGHTS['empty'] * empty_count
-
-    # 单调性
-    mono_total = 0
-    for r in range(size):
-        row = log_board[r]
-        mono_total += max(_monotonicity_score(row), _monotonicity_score(row[::-1]))
-    for c in range(size):
-        col = log_board[:, c]
-        mono_total += max(_monotonicity_score(col), _monotonicity_score(col[::-1]))
-    score += WEIGHTS['monotonicity'] * mono_total
-
-    # 平滑度
-    smooth_total = 0
-    for r in range(size):
-        for c in range(size - 1):
-            if board[r, c] > 0 and board[r, c+1] > 0:
-                smooth_total -= abs(log_board[r, c] - log_board[r, c+1])
-    for c in range(size):
-        for r in range(size - 1):
-            if board[r, c] > 0 and board[r+1, c] > 0:
-                smooth_total -= abs(log_board[r, c] - log_board[r+1, c])
-    score += WEIGHTS['smoothness'] * smooth_total
-
-    # 角落最大值
-    corners = [board[0, 0], board[0, size-1], board[size-1, 0], board[size-1, size-1]]
-    max_corner = max(corners)
-    max_val = np.max(board)
-    if max_corner == max_val:
-        score += WEIGHTS['corner_max'] * max_val
-    else:
-        score -= WEIGHTS['corner_max'] * max_val * 0.5
-
-    return score
-
 # ==================== 置换表 ====================
 trans_table = {}
 
 def tt_key(board, step_mod):
     return (tuple(board.flatten()), step_mod)
 
-# ==================== 搜索函数 ====================
+# ==================== 搜索函数（支持 eval_func 切换） ====================
 
-def chance_node(board, step_count, depth):
+def chance_node(board, step_count, depth, eval_func):
     size = board.shape[0]
     mod = step_count % 24
     key = tt_key(board, mod)
@@ -143,14 +83,13 @@ def chance_node(board, step_count, depth):
         return trans_table[key]
 
     if depth == 0 or is_game_over(board):
-        val = evaluate(board)
+        val = eval_func(board)
         trans_table[key] = val
         return val
 
     # 1. 正常随机生成方块
     empty_cells = list(zip(*np.where(board == 0)))
-    states = []
-    probs = []
+    states, probs = [], []
     if empty_cells:
         if len(empty_cells) <= SAMPLE_THRESHOLD:
             for cell in empty_cells:
@@ -176,7 +115,7 @@ def chance_node(board, step_count, depth):
         new_states, new_probs = [], []
         for base_state, base_prob in zip(states, probs):
             cand = [(r, c) for r in range(size) for c in range(size)
-                    if 4 <= base_state[r, c] < 128]   # 只降级国三及以下
+                    if 4 <= base_state[r, c] < 128]
             if not cand:
                 new_states.append(base_state)
                 new_probs.append(base_prob)
@@ -189,6 +128,7 @@ def chance_node(board, step_count, depth):
                     new_states.append(nb)
                     new_probs.append(base_prob / len(cand))
         states, probs = new_states, new_probs
+
     # 3. 金牌教练
     if step_count % 12 == 0 and step_count > 0:
         new_states, new_probs = [], []
@@ -210,37 +150,48 @@ def chance_node(board, step_count, depth):
 
     expected = 0.0
     for state, prob in zip(states, probs):
-        max_val = max_node(state, step_count, depth)
+        max_val = max_node(state, step_count, depth, eval_func)
         expected += prob * max_val
 
     trans_table[key] = expected
     return expected
 
 
-def max_node(board, step_count, depth):
+def max_node(board, step_count, depth, eval_func):
     best = -float('inf')
-    actions = list(range(4))
     action_scores = []
-    for a in actions:
+    for a in range(4):
         nb, moved, ms = simulate_move(board, a)
         if moved:
-            fast_val = evaluate(nb) + ms
+            fast_val = eval_func(nb) + ms
             action_scores.append((a, nb, ms, fast_val))
     if not action_scores:
-        return evaluate(board)
+        return eval_func(board)
 
     action_scores.sort(key=lambda x: x[3], reverse=True)
     candidates = action_scores[:2]
 
     for a, nb, ms, _ in candidates:
-        future = chance_node(nb, step_count+1, depth-1)
+        future = chance_node(nb, step_count+1, depth-1, eval_func)
         value = ms + future
         if value > best:
             best = value
     return best
 
 
-def get_best_action(game, depth=3):
+def get_best_action(game, depth=3, eval_func=None):
+    """
+    game: Game 实例
+    depth: 搜索深度
+    eval_func: 评估函数，默认为 V3
+    """
+    if eval_func is None:
+        from evals import evaluate_v3
+        eval_func = evaluate_v3
+
+    # 清空置换表（确保不同评估函数不共享缓存）
+    trans_table.clear()
+
     board = game.board.copy()
     step_count = game.step_count
     best_action = None
@@ -250,7 +201,7 @@ def get_best_action(game, depth=3):
     for a in range(4):
         nb, moved, ms = simulate_move(board, a)
         if moved:
-            fast_val = evaluate(nb) + ms
+            fast_val = eval_func(nb) + ms
             action_candidates.append((a, nb, ms, fast_val))
     if not action_candidates:
         return None
@@ -259,7 +210,7 @@ def get_best_action(game, depth=3):
     candidates = action_candidates[:2]
 
     for a, nb, ms, _ in candidates:
-        future = chance_node(nb, step_count+1, depth-1)
+        future = chance_node(nb, step_count+1, depth-1, eval_func)
         value = ms + future
         if value > best_score:
             best_score = value

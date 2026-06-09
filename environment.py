@@ -87,20 +87,30 @@ class Game:
         self.board[r, c] = 2 if random.random() < 0.9 else 4
 
     def _exam_accident(self):
-        # 只降级等级在 [省三(4), 国三(64)] 范围内的方块，国二(128)及以上豁免
         candidates = [(r, c) for r in range(self.size) for c in range(self.size)
                     if 4 <= self.board[r, c] < 128]
         if not candidates:
             return
         r, c = random.choice(candidates)
-        self.board[r, c] = max(2, self.board[r, c] // 2)  # 最低降到省四(2)
+        old_val = self.board[r, c]
+        self.board[r, c] = max(2, old_val // 2)
+        new_val = self.board[r, c]
+
+        # 名称映射
+        names = {2:"省四",4:"省三",8:"省二",16:"省一",32:"省队",64:"国三",
+                128:"国二",256:"国一",512:"国集",1024:"国家队",2048:"无敌了"}
+        print(f"考场意外！一位{names[old_val]}选手失误，退回{names[new_val]}！")
 
     def _coach_guidance(self):
         empty = list(zip(*np.where(self.board == 0)))
         if not empty:
             return
         r, c = random.choice(empty)
-        self.board[r, c] = 16 if random.random() < 0.9 else 32
+        new_val = 16 if random.random() < 0.9 else 32
+        self.board[r, c] = new_val
+
+        names = {16:"省一",32:"省队"}
+        print(f"金牌教练场外指导！送来一位{names[new_val]}选手！")
 
     def _is_game_over(self):
         if np.any(self.board == 0):
