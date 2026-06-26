@@ -5,13 +5,15 @@ from expectimax import get_best_action
 from evals import WEIGHTS_V0, evaluate_v0
 
 VERSION = "V0"
-DEPTH = 3
+TUNE_DEPTH = 2               # 调参用浅层搜索，比最终实验的 depth=3 快 5~10 倍
 NUM_TUNE_GAMES = 10
+MAX_STEPS = 200              # 强制终止：避免低效策略无休止地苟活
 LOG_FILE = f"results/tune_{VERSION.lower()}.csv"
 BEST_FILE = f"best_{VERSION.lower()}.json"
 
+# 缩小搜索范围（粗搜），后续如需精调可以基于粗搜结果缩小范围
 SEARCH_SPACE = {
-    'empty': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+    'empty': [20, 40, 60, 80, 100]    # 原本 10 个值减为 5 个，涵盖典型区间
 }
 
 def evaluate_params(empty_val):
@@ -22,11 +24,13 @@ def evaluate_params(empty_val):
         np.random.seed(seed)
         game = Game()
         game.reset()
-        while True:
-            action = get_best_action(game, depth=DEPTH, eval_func=evaluate_v0)
+        step = 0
+        while step < MAX_STEPS:                    # 步数保护
+            action = get_best_action(game, depth=TUNE_DEPTH, eval_func=evaluate_v0)
             if action is None:
                 break
             _, _, done, _ = game.step(action)
+            step += 1
             if done:
                 break
         scores.append(game.score)
