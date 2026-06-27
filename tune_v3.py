@@ -5,8 +5,9 @@ from expectimax import get_best_action
 from evals import WEIGHTS_V3, evaluate_v3
 
 VERSION = "V3"
-DEPTH = 3
+TUNE_DEPTH = 2               # 调参用浅层搜索，比最终实验的 depth=3 快很多
 NUM_TUNE_GAMES = 10
+MAX_STEPS = 200              # 强制终止，避免低效策略无限拖延
 LOG_FILE = f"results/tune_{VERSION.lower()}.csv"
 BEST_FILE = f"best_{VERSION.lower()}.json"
 
@@ -28,11 +29,13 @@ def evaluate_params(empty_val, mono_val, smooth_val, corner_val):
         np.random.seed(seed)
         game = Game()
         game.reset()
-        while True:
-            action = get_best_action(game, depth=DEPTH, eval_func=evaluate_v3)
+        step = 0
+        while step < MAX_STEPS:
+            action = get_best_action(game, depth=TUNE_DEPTH, eval_func=evaluate_v3)
             if action is None:
                 break
             _, _, done, _ = game.step(action)
+            step += 1
             if done:
                 break
         scores.append(game.score)
