@@ -5,8 +5,8 @@ from expectimax import get_best_action
 from evals import WEIGHTS_V0, evaluate_v0
 
 VERSION = "V0"
-DEPTH = 2
-NUM_GAMES = 100
+DEPTH = 3
+NUM_GAMES = 50
 LOG_FILE = f"results/final_{VERSION.lower()}.csv"
 BEST_FILE = f"best_{VERSION.lower()}.json"
 

@@ -6,7 +6,7 @@ from evals import WEIGHTS_V3, evaluate_v3
 
 VERSION = "V3"
 DEPTH = 3
-NUM_GAMES = 100
+NUM_GAMES = 50
 LOG_FILE = f"results/final_{VERSION.lower()}.csv"
 BEST_FILE = f"best_{VERSION.lower()}.json"
 
