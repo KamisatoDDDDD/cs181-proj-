@@ -99,7 +99,6 @@ class Game:
         # 名称映射
         names = {2:"省四",4:"省三",8:"省二",16:"省一",32:"省队",64:"国三",
                 128:"国二",256:"国一",512:"国集",1024:"国家队",2048:"无敌了"}
-        print(f"考场意外！一位{names[old_val]}选手失误，退回{names[new_val]}！")
 
     def _coach_guidance(self):
         empty = list(zip(*np.where(self.board == 0)))
@@ -110,7 +109,6 @@ class Game:
         self.board[r, c] = new_val
 
         names = {16:"省一",32:"省队"}
-        print(f"金牌教练场外指导！送来一位{names[new_val]}选手！")
 
     def _is_game_over(self):
         if np.any(self.board == 0):
