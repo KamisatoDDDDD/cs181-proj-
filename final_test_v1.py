@@ -24,7 +24,7 @@ def main():
     with open(LOG_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['game_id', 'score', 'max_tile', 'steps', 'duration_sec'])
-        for game_id in range(1, NUM_GAMES+1):
+        for game_id in range(12, NUM_GAMES+12):
             random.seed(game_id)
             np.random.seed(game_id)
             game = Game()
