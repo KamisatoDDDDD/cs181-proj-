@@ -166,7 +166,8 @@ def evaluate(seed_start, num_games, mode, depth):
             "seed": seed,
             "score": result["score"],
             "max_tile": result["max_tile"],
-            "time": result["time"]
+            "time": result["time"],
+            "step": result["steps"]
         })
 
         scores.append(result["score"])
