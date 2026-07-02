@@ -1,148 +1,174 @@
-一、文件结构
+===============================================================================
+  Synthesized National Team - 2048 AI 项目 README
+=================================================
 
-合成国家队/
+【项目概述】
+本项目在一个非平稳的 5x5 2048 变体环境（包含“考场意外”和“教练指导”事件）中，
+对比了 Expectimax 搜索算法与轻量级 TD-Learning 强化学习算法的性能。
 
-│
+===============================================================================
+ 一、文件结构及功能说明
+=======================
 
-├── environment.py              # 游戏核心：5×5 棋盘，移动合并，随机生成，扰动，游戏结束判定
+1. 环境与核心逻辑
 
-├── expectimax.py               # Expectimax 搜索框架（支持 eval\_func 切换，含置换表）
+---
 
-├── evals.py                    # V0\~V4 评估函数及对应的权重字典（可在此调参）
+environment.py
+    游戏核心环境类（Game）。定义了5x5棋盘，包含正常的滑动、合并逻辑，
+    以及"Exam Accident（考场意外）"和"Coach Guidance（教练指导）"两个周期性事件。
 
-│
+evals.py
+    所有的启发式评估函数（V0 ~ V4）。
+    包含 Basic, Mono, Full 三种启发式家族的权重定义及计算逻辑（如平滑度、单调性、
+    Snake权重、合并潜力）。
 
-├── play.py              # 手动玩（这是我测试游戏环境写的，不用管）
+expectimax.py
+    Expectimax 搜索算法核心代码。
+    包含 Max节点、Chance节点（含采样逻辑）、置换表（Transposition Table）以及
+    外部调用的 get_best_action 接口。
 
-│
+2. 调参脚本（生成权重文件）
 
-├── tune\_v0.py                  # V0 调参脚本（网格搜索最优 empty 权重）
+---
 
-├── tune\_v1.py                  # V1 调参脚本（网格搜索 empty + corner\_max）
+tune_v2.py
+    用于对 V2 (Basic-F) 的权重进行网格搜索调参。
+    输出：results/tune_v2.csv 和 best_v2.json。
 
-├── tune\_v2.py                  # V2 调参脚本（网格搜索 empty + corner\_max + smoothness）
+tune_v3.py
+    用于对 V3 (Mono-F) 的权重进行网格搜索调参。
+    输出：results/tune_v3.csv 和 best_v3.json。
 
-├── tune\_v3.py                  # V3 调参脚本（网格搜索四个参数）
+tune_v4.py
+    用于对 V4 (Full-F) 的权重进行网格搜索调参。
+    输出：results/tune_v4.csv 和 best_v4.json。
 
-├── tune\_v4.py                  # V4 调参脚本（网格搜索六个参数）
+最佳权重文件（生成结果）：
+best_v2.json, best_v3.json, best_v4.json
+    存储了调参得到的最佳权重组合，供后续测试脚本读取。
 
-│
+3. 训练脚本
 
-├── final\_test\_v0.py            # V0 最终实验：读取 best\_v0.json，运行 100 局（固定随机种子）
+---
 
-├── final\_test\_v1.py            # V1 最终实验：读取 best\_v1.json，运行 100 局
+final_rl.py
+    TD-Lin (RL) 基线模型的训练脚本。
+    使用 3000 个 episode 训练线性价值网络。
+    输出：model.npy （保存训练好的权重）。
 
-├── final\_test\_v2.py            # V2 最终实验：读取 best\_v2.json，运行 100 局
+4. 测试/评估脚本
 
-├── final\_test\_v3.py            # V3 最终实验：读取 best\_v3.json，运行 100 局
+---
 
-├── final\_test\_v4.py            # V4 最终实验：读取 best\_v4.json，运行 100 局
+final_test_v0.py
+    测试 V0 (Mono-C) 代理。内部强制使用粗采样（C配置），加载 V3 的权重。
 
-│
+final_test_v1.py
+    测试 V1 (Full-C) 代理。内部强制使用粗采样（C配置），加载 V4 的权重。
 
-├── results/                    # 存放所有调参和最终实验的 CSV 数据（这个是跑完tune和final\_text们会得到的结果，现在还没有）
+final_test_v2.py
+    测试 V2 (Basic-F) 代理。使用默认细采样（F配置），加载 V2 的权重。
 
-│   ├── tune\_v0.csv
+final_test_v3.py
+    测试 V3 (Mono-F) 代理。使用默认细采样（F配置），加载 V3 的权重。
 
-│   ├── tune\_v1.csv
+final_test_v4.py
+    测试 V4 (Full-F) 代理。使用默认细采样（F配置），加载 V4 的权重。
 
-│   ├── tune\_v2.csv
+final_rl_test_figure.py
+    测试 TD-Lin (RL) 代理，并生成测试结果Excel文件以及最大方块饼图。
 
-│   ├── tune\_v3.csv
+5. 游戏演示与结果绘图
 
-│   ├── tune\_v4.csv
+---
 
-│   ├── final\_v0.csv
+play.py
+    人机交互脚本。允许人类玩家通过 W/A/S/D 键手动玩该5x5环境。
 
-│   ├── final\_v1.csv
+analyze_report_plots_v2.py
+    报告绘图脚本。读取 results 文件夹下的所有测试 CSV 文件，生成论文所需的箱线图、
+    最大方块分布堆叠图、性能-代价权衡图等。
+    输出：report_assets/ 文件夹下的图表文件。
 
-│   ├── final\_v2.csv
+6. 论文报告
 
-│   ├── final\_v3.csv
+---
 
-│   └── final\_v4.csv
+ai_proj (1).pdf
+    项目的最终实验报告（论文正文）。
 
-│
+===============================================================================
+ 二、完整实验流程（从调参到生成图表）
+=====================================
 
-├── best\_v0.json                # V0 调参得到的最优权重（这些是跑完tune们会得到的结果，现在还没有）
+【步骤 1】 启发式权重调参（Expectimax）
+---------------------------------------
 
-├── best\_v1.json                # V1 最优权重
+注：需要在当前目录下创建空的 results/ 文件夹，脚本会自动生成。
 
-├── best\_v2.json                # V2 最优权重
+在终端依次运行以下命令：
+  python tune_v2.py
+  python tune_v3.py
+  python tune_v4.py
 
-├── best\_v3.json                # V3 最优权重
+这将开始对 V2/V3/V4 的权重进行网格搜索（depth=2, 10局, 200步截断）。
+运行完毕后，当前目录下会生成 best_v2.json, best_v3.json, best_v4.json 文件。
 
-├── best\_v4.json                # V4 最优权重
+【步骤 2】 训练 RL 智能体
+-------------------------
 
-│
+运行以下命令：
+  python final_rl.py
 
-├── test\_v0.py                  # (可选) V0 单局演示脚本，人工观察 AI 行为
+该脚本执行 3000 个 episode 的 TD 学习，训练完毕后会生成 model.npy 文件。
 
-├── test\_v1.py
+【步骤 3】 全量评估测试（生成 CSV 数据）
+----------------------------------------
 
-├── test\_v2.py
+（注：为配合报告中的 180 局数据，建议使用 --seed_start 12 --num_games 180 参数）
 
-├── test\_v3.py
+3.1 评估 Expectimax 代理 (V0 ~ V4)
+建议在终端依次执行以下 5 条指令（请确保当前目录下已有对应的 best_v*.json）：
+  python final_test_v0.py --seed_start 12 --num_games 180
+  python final_test_v1.py --seed_start 12 --num_games 180
+  python final_test_v2.py --seed_start 12 --num_games 180
+  python final_test_v3.py --seed_start 12 --num_games 180
+  python final_test_v4.py --seed_start 12 --num_games 180
 
-├── test\_v4.py
+运行完毕后，results/ 目录下会生成 final_v0_12_191.csv 等 5 个文件。（实际我们三人分工，所以这些文件是截断的）
 
-│
+3.2 评估 TD-Lin 代理
+运行以下命令：
+  python final_rl_test_figure.py --mode rl --seed_start 12 --num_games 180
 
-└── README.md                   # 项目说明（可写实验流程、运行方式等）
+运行完毕后，results/ 目录下会生成 eval_rl_games180.xlsx 文件。
 
+【步骤 4】 数据可视化与报告图表生成
+-----------------------------------
 
+确保 results/ 目录下已经包含了所有上述的 CSV 和 Excel 数据文件后，运行：
 
-二、项目流程
+  python analyze_report_plots_v2.py --results-dir results --out-dir report_assets --seed-start 12 --num-games 180
 
-整个项目分为 准备阶段 → 调参阶段 → 最终实验阶段 → 分析与撰写阶段。
+脚本会自动将数据合并，并生成：
 
-**1. 准备阶段（代码实现与验证）**
+- report_assets/score_boxplot_log.png      （分数分布箱线图）
+- report_assets/max_tile_distribution_percent.png （最大方块分布图）
+- report_assets/score_runtime_tradeoff_step.png （性能-成本权衡图）
+- report_assets/merged_results.csv         （所有结果的聚合数据表）
 
-(1) 编写 environment.py（已完成）。
+【可选步骤 5】 人机对战测试
+---------------------------
 
-(2) 编写 evals.py，实现 V0～V4 五个评估函数及权重字典。
+如果你想手动体验游戏，可运行：
+  python play.py
+使用 W/A/S/D 控制上下左右，Q 退出。
 
-(3) 编写 expectimax.py，实现能接受评估函数参数的搜索框架。
+===============================================================================
+ 三、注意事项
+=============
 
-(4) 编写 test\_v0.py \~ test\_v4.py，各自调用对应评估函数跑一局，观察 AI 行为是否正常、有无错误。
-
-
-
-**2. 调参阶段（寻找每个版本的最佳权重）**
-
-(1) 三人分工运行 tune\_v0.py \~ tune\_v4.py。
-
-(2) 每个调参脚本内预设了参数搜索空间(到时候得改一下)，对每种组合测试 NUM\_TUNE\_GAMES 局（默认 10 局），记录平均得分。
-
-(3) 每局开始时固定 random.seed(seed) 和 np.random.seed(seed)，确保同一种子在不同权重下使用的随机序列完全一致（公平比较）。
-
-(4) 脚本自动选择平均得分最高的权重组合，保存为 best\_v\*.json。
-
-
-
-**3. 最终实验阶段（100 局控制变量对比）**
-
-(1) 将所有人的 best\_v\*.json 汇总到项目根目录。
-
-(2) 三人分别运行 final\_test\_v0.py \~ final\_test\_v4.py，每个脚本读取对应的最佳权重，运行 100 局。
-
-(3) 每局使用 game\_id 作为随机种子（1～100），确保所有版本的第 1 局、第 2 局……第 100 局都在完全相同的初始棋盘、新方块出现位置、扰动触发序列下进行。
-
-(4) 记录每局的最终得分、最高合成等级（max\_tile）、步数、耗时，写入 results/final\_v\*.csv。
-
-
-
-**4. 数据分析与报告撰写阶段**
-
-(1) 汇总 results/final\_v0.csv \~ final\_v4.csv。
-
-(2) 用 Python（pandas + matplotlib/seaborn）读取数据，绘制图表：
-
-(3) 平均得分柱状图（含标准误或置信区间; 最高合成等级分布（堆积条形图或百分比热力图; 生存步数箱线图; 单步决策耗时对比。
-
-(4) 撰写实验报告：解释每个评估函数的设计思路，展示消融实验（V0→V4 逐步添加特征）的得分提升，结合图表分析原因。
-
-(5) 讨论局限性（如深度限制、采样近似、权重调优空间）和未来工作（可与 RL 对比、引入更复杂启发式等）。
-
-
-
+1. 测试脚本中的 --seed_start 和 --num_games 参数建议保持一致，以确保对照实验的公平性。
+2. 粗采样（V0, V1）和细采样（V2, V3, V4）的配置代码直接硬编码在各自的 final_test_*.py 文件中，位于文件头部的 expectimax 模块参数赋值区。
+3. 若缺少依赖库，请运行 pip install numpy pandas matplotlib openpyxl。
